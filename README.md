@@ -63,8 +63,10 @@ seam 在 `nanovllm/layers/attention.py` 顶部——替换实现不需要改任�
 uv sync          # 依赖已锁定在 uv.lock(含 AMD whl-next 索引配置)
 ```
 
-权重放在 `D:\llama.cpp\models\Qwen\Qwen3-0.6B\`(`example.py` / `bench.py` 里的路径,
-换成你自己的即可)。
+权重放在环境变量 `NANOVLLM_MODEL` 指向的目录(默认 `D:\llama.cpp\models\Qwen\Qwen3-0.6B`,
+本机约定:按 HF 仓库作者名建一级目录),需要 `config.json` / `tokenizer.json` /
+`tokenizer_config.json` / `vocab.json` / `merges.txt` 与 `model.safetensors` 同目录。
+换机器只需设这一个变量,不必改代码。
 
 ## 如何复现这些数字
 

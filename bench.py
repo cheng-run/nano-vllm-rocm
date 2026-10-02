@@ -25,8 +25,8 @@ def main():
     max_ouput_len = 1024
     eager = os.environ.get("NANOVLLM_EAGER", "0") == "1"
 
-    # 模型目录:按用户目录约定(作者名一级目录)落盘
-    path = r"D:\llama.cpp\models\Qwen\Qwen3-0.6B"
+    # 模型路径:优先读 NANOVLLM_MODEL 环境变量,默认值为本机约定(作者名一级目录)
+    path = os.environ.get("NANOVLLM_MODEL", r"D:\llama.cpp\models\Qwen\Qwen3-0.6B")
     llm = LLM(path, enforce_eager=eager, max_model_len=4096)
 
     prompt_token_ids = [[randint(0, 10000) for _ in range(randint(100, max_input_len))] for _ in range(num_seqs)]

@@ -8,6 +8,7 @@ r"""decode 步耗时画像:attention(手写实现)占整步的比例。
 
 用法: .venv\Scripts\python.exe tools\probe_decode_profile.py
 """
+import os
 import time
 
 import torch
@@ -16,7 +17,9 @@ from transformers import AutoTokenizer
 import nanovllm.layers.attention as att_mod
 from nanovllm import LLM, SamplingParams
 
-PATH = r"D:\llama.cpp\models\Qwen\Qwen3-0.6B"
+# 模型路径:优先读 NANOVLLM_MODEL 环境变量,默认值为本机约定(作者名一级目录);
+# 换机器只需设这一个变量,不必改代码
+PATH = os.environ.get("NANOVLLM_MODEL", r"D:\llama.cpp\models\Qwen\Qwen3-0.6B")
 
 
 def main():

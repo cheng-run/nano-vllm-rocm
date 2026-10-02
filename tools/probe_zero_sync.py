@@ -12,6 +12,7 @@ r"""热路径零同步回归检查:decode 步内 D2H 标量回读次数必须为
 
 用法: .venv\Scripts\python.exe tools\probe_zero_sync.py
 """
+import os
 import sys
 
 import torch
@@ -19,7 +20,9 @@ from transformers import AutoTokenizer
 
 from nanovllm import LLM, SamplingParams
 
-PATH = r"D:\llama.cpp\models\Qwen\Qwen3-0.6B"
+# 模型路径:优先读 NANOVLLM_MODEL 环境变量,默认值为本机约定(作者名一级目录);
+# 换机器只需设这一个变量,不必改代码
+PATH = os.environ.get("NANOVLLM_MODEL", r"D:\llama.cpp\models\Qwen\Qwen3-0.6B")
 SCALAR_OP = "aten::_local_scalar_dense"
 
 

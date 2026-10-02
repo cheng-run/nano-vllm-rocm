@@ -9,6 +9,7 @@ r"""decode 步的内核级真账:torch.profiler 分解。
 
 用法: .venv\Scripts\python.exe tools\probe_profiler.py
 """
+import os
 import sys
 
 import torch
@@ -16,7 +17,9 @@ from transformers import AutoTokenizer
 
 from nanovllm import LLM, SamplingParams
 
-PATH = r"D:\llama.cpp\models\Qwen\Qwen3-0.6B"
+# 模型路径:优先读 NANOVLLM_MODEL 环境变量,默认值为本机约定(作者名一级目录);
+# 换机器只需设这一个变量,不必改代码
+PATH = os.environ.get("NANOVLLM_MODEL", r"D:\llama.cpp\models\Qwen\Qwen3-0.6B")
 
 
 def main():

@@ -11,6 +11,7 @@ r"""验证「热路径 `.item()` 是主瓶颈」——闸门2 的决定性实验
 """
 import importlib.util
 import sys
+import os
 import time
 from pathlib import Path
 
@@ -21,7 +22,9 @@ import nanovllm.engine.model_runner as mr
 import nanovllm.layers.attention as att_mod
 from nanovllm import LLM, SamplingParams
 
-PATH = r"D:\llama.cpp\models\Qwen\Qwen3-0.6B"
+# 模型路径:优先读 NANOVLLM_MODEL 环境变量,默认值为本机约定(作者名一级目录);
+# 换机器只需设这一个变量,不必改代码
+PATH = os.environ.get("NANOVLLM_MODEL", r"D:\llama.cpp\models\Qwen\Qwen3-0.6B")
 
 _spec = importlib.util.spec_from_file_location(
     "attention_rocm",

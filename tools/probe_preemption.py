@@ -16,7 +16,9 @@ import os
 import subprocess
 import sys
 
-PATH = r"D:\llama.cpp\models\Qwen\Qwen3-0.6B"
+# 模型路径:优先读 NANOVLLM_MODEL 环境变量,默认值为本机约定(作者名一级目录);
+# 换机器只需设这一个变量,不必改代码
+PATH = os.environ.get("NANOVLLM_MODEL", r"D:\llama.cpp\models\Qwen\Qwen3-0.6B")
 
 CHILD = r'''
 import time, os
