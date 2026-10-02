@@ -20,3 +20,8 @@ desktop.ini
 # 私人备注:求职背景、简历表述、个人定位等,不进公开仓库
 notes/*resume-positioning*.md
 notes/*private*.md
+
+# 本地工作流配置(agent skills 的 issue tracker / triage 标签 / 领域文档规则)。
+# 对仓库的对外读者没有价值,且含私人上下文;本地的 agent 会话仍可正常读取。
+docs/
+.scratch/
