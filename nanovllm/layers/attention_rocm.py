@@ -25,6 +25,8 @@
 """
 import torch
 
+from nanovllm.utils.context import get_context
+
 
 def _attn_single(
     qi: torch.Tensor,
@@ -95,8 +97,11 @@ def rocm_varlen_attn(
     """
     n = cu_seqlens_q.numel() - 1
     out = torch.empty_like(q)
-    cu_q = cu_seqlens_q.tolist()   # host 取值一次,避免逐段 GPU 同步
-    cu_k = cu_seqlens_k.tolist()
+    # 长度取自上下文的 CPU 侧列表:曾用 cu_seqlens_q.tolist(),那是一次 D2H 同步,
+    # 本机约 3ms/次(闸门2 a 段)。列表由 prepare_prefill 在张量化前留好,内容相同。
+    ctx = get_context()
+    cu_q = ctx.cu_seqlens_q_host if ctx.cu_seqlens_q_host is not None else cu_seqlens_q.tolist()
+    cu_k = ctx.cu_seqlens_k_host if ctx.cu_seqlens_k_host is not None else cu_seqlens_k.tolist()
     for i in range(n):
         qs, qe = cu_q[i], cu_q[i + 1]
         ks, ke = cu_k[i], cu_k[i + 1]
@@ -120,10 +125,15 @@ def rocm_with_kvcache(
 ) -> torch.Tensor:
     """≙ flash_attn_with_kvcache。q: [B, 1, H, D] → [B, 1, H, D]。"""
     B = q.shape[0]
-    block_size = k_cache.shape[1]
+    ctx = get_context()
+    # 长度取自上下文的 CPU 侧列表(张量化前的原始值),不回读 GPU 标量——
+    # 这行曾是逐层同步的热点:本机 D2H 标量同步 3ms × 28 层,吃掉约 1/3 吞吐
+    lens = ctx.cache_seqlens_host
+    if lens is None:      # 没有上下文时(独立调用/探针)退回张量读取,保持接口可用
+        lens = cache_seqlens.tolist()
     outs = []
     for b in range(B):
-        Lk = int(cache_seqlens[b])
+        Lk = lens[b]
         ki, vi = _gather_seq_kv(k_cache, v_cache, block_table[b], Lk)
         outs.append(_attn_single(q[b], ki, vi, softmax_scale, causal))   # q[b]: [1, H, D]
     # 每条 [1, H, D],沿 batch 维 stack → [B, 1, H, D](与 flash_attn_with_kvcache 同形)
