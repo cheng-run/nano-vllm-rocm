@@ -38,11 +38,24 @@ seam 在 `nanovllm/layers/attention.py` 顶部——替换实现不需要改任�
 **图带来的倍率随 batch 递减**:bs=1 4.75× / bs=8 3.15× / bs=32 1.85×——batch 越大,
 固定开销被摊薄,图的边际收益越小。
 
-`bench.py` 已恢复上游配置(全量约 4 分钟)。**剩余差距尚未归因**:全量 528.67 tok/s 与
-图评估的 1600 tok/s 之间有 3 倍差距,候选解释有二——(a) prefill 未 kernel 化(本轮只做了
-decode),(b) 全量场景上下文长得多(decode 成本随上下文线性增长),两者各占多少**未经测量**。
-`tools/probe_phase_split.py` 是为归因写的探针,但本轮未跑完(6 轮全量 bench 耗时过长,中途终止),
-所以这里不下结论。
+### 全量 bench 数字的归因尝试(四个假设全部被证伪)
+
+`bench.py` 全量(256 序列 / 随机输入 100–1024 / 随机输出 100–1024)测得 **528.7 tok/s**,
+低于纯 decode 图评估的 1600。为定位差距做了四组单变量实验,**四个候选解释没有一个成立**:
+
+| 候选解释 | 实验 | 结果 | 裁决 |
+|---|---|---|---|
+| prefill 未 kernel 化是主因 | 只切 `NANOVLLM_ATTN_BACKEND`(两相拆分) | prefill 仅 5.55s / 687s = **0.8%** | 否 |
+| KV 池超配触发 preempt 重算 | 数 `Scheduler.preempt` 调用次数 | 超配 1.9×、44 次抢占,吞吐 1835 → 1801(几乎不动) | 否 |
+| 图在 bench 配置下收益大 | bench 同配置切 eager / graph | 486.7 vs 528.7 = **1.09×** | 否 |
+| 随机长输出的"尾巴"拖低平均 | 固定输出 64 vs 1024 | 短输出 217 / 长输出 443——**方向相反** | 否 |
+
+**结论:主因仍未知。** 唯一浮现的线索是短输出场景明显更慢(217 vs 443 tok/s),
+而 prefill 恰好是短输出场景中相对权重最高、且本项目唯一未实测的一段——
+但这是线索不是结论,未经测量不下判断(见 `AGENTS.md` 的纪律)。
+
+**一个口径陷阱**(踩过,值得记):`bench.py` 打印的是**仅输出 token** 的吞吐,
+而多个探针算的是**输入 + 输出**;两者不可直接比较——同一实验换口径前后差 16%。
 
 ## 安装
 
@@ -52,6 +65,33 @@ uv sync          # 依赖已锁定在 uv.lock(含 AMD whl-next 索引配置)
 
 权重放在 `D:\llama.cpp\models\Qwen\Qwen3-0.6B\`(`example.py` / `bench.py` 里的路径,
 换成你自己的即可)。
+
+## 如何复现这些数字
+
+所有结论都可由下面几条命令复算。**先做等价性检查,再做性能测量**——这是本项目的纪律:
+性能数字只有在正确性有据的前提下才有意义。
+
+```bash
+# ── 正确性(先跑这个)──────────────────────────────
+python tools/probe_attention_equivalence.py   # 参考后端 vs 朴素双重循环
+python tools/probe_kernel_equivalence.py      # kernel 后端 vs 参考后端(5 组边界 × fp32/bf16)
+python tools/probe_zero_sync.py               # decode 步内 D2H 标量同步 = 0
+python tools/probe_graph_equivalence.py       # eager 与 graph 输出逐 token 一致
+python example.py                             # 端到端:输出应连贯且推理正确
+
+# ── 性能(无探针基线,不做任何插桩)────────────────
+python bench.py                                      # 参考后端 + 图
+NANOVLLM_ATTN_BACKEND=kernel python bench.py         # kernel 后端 + 图  ← 主结果
+NANOVLLM_ATTN_BACKEND=kernel NANOVLLM_EAGER=1 python bench.py   # 不带图,看图的净收益
+python tools/probe_graph_eval.py                     # 图倍率随 batch 的变化
+```
+
+**测量规范(踩过坑,写进 `AGENTS.md` 了)**:性能份额必须用无探针基线。
+cuda events 夹壳这类探针会给每步加 ~18ms,足以让"attention 占 43%"这类结论完全失真
+(见 `notes/2026-10-02-performance-measurements.md`)。
+
+**已知的测量限制**:`model_runner.py` 的进程组端口硬编码 2333,同机并发两个引擎实例
+必然失败——所有对照实验必须串行。
 
 ## 验证脚本(`tools/`)
 
@@ -64,8 +104,10 @@ uv sync          # 依赖已锁定在 uv.lock(含 AMD whl-next 索引配置)
 | `probe_zero_sync.py` | decode 步内 D2H 标量同步次数为 0(防回归) |
 | `probe_graph_equivalence.py` | eager 与 graph 路径输出一致 |
 | `probe_graph_eval.py` | 图在哪些 batch 区间划算 |
-| `probe_phase_split.py` | prefill / decode 两相拆分 |
+| `probe_phase_split.py` | 差距归因:两后端单变量对照,分离 prefill / decode 份额 |
 | `probe_sdpa_stability.py` | 为何禁用 SDPA(留档) |
+| `probe_decode_profile.py` · `probe_step_breakdown.py` | 早期耗时画像(**探针有污染,结论已废**,留作反面教材) |
+| `probe_gather_cost.py` · `probe_attn_breakdown.py` · `probe_op_overhead.py` · `probe_no_item.py` · `probe_profiler.py` | 定位瓶颈的中间探针 |
 
 ## 文档
 
