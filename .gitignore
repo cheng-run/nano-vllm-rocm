@@ -1,0 +1,18 @@
+# 虚拟环境与构建产物
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# 模型权重(体积大,按用户目录约定另行存放)
+*.safetensors
+*.gguf
+
+# 编辑器与系统
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+
+# uv 缓存
+.uv/
