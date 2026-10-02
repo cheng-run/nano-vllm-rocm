@@ -1,3 +1,5 @@
+import os
+
 import torch
 from torch import nn
 import triton
@@ -9,11 +11,20 @@ except ImportError:
     # Windows/ROCm 没有任何 flash-attn 可安装产物(PyPI 只有 sdist、ROCm fork 的
     # release wheel 全是 CUDA/linux、AMD 索引无此包),改走等价替代实现——
     # 语义经 tools/probe_attention_equivalence.py 对朴素参考验证(含右下 causal)。
-    # 两个别名与 flash_attn 同签名,forward 无需任何改动。
     from nanovllm.layers.attention_rocm import (
         rocm_varlen_attn as flash_attn_varlen_func,
-        rocm_with_kvcache as flash_attn_with_kvcache,
+        rocm_with_kvcache as _reference_decode,
     )
+
+    # 后端切换(闸门2 b 段):kernel 后端在 kernel 内按 block_table 就地读池,
+    # 消掉参考后端的 gather 搬运;prefill 两份实现都走参考后端(Lq>1 不在本轮范围)。
+    # 默认 reference——kernel 是新的,参考后端是经过全绿验证的基准,便于随时对照与回退。
+    #   NANOVLLM_ATTN_BACKEND=kernel  → decode 走 triton
+    _backend = os.environ.get("NANOVLLM_ATTN_BACKEND", "reference").lower()
+    if _backend == "kernel":
+        from nanovllm.layers.attention_triton import paged_attention_decode as flash_attn_with_kvcache
+    else:
+        flash_attn_with_kvcache = _reference_decode
 from nanovllm.utils.context import get_context
 
 
