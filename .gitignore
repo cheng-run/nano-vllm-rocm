@@ -17,7 +17,7 @@ desktop.ini
 # uv 缓存
 .uv/
 
-# 私人备注:求职背景、简历表述、个人定位等,不进公开仓库
+# 本地笔记与个人定位文档,不进公开仓库
 notes/*resume-positioning*.md
 notes/*private*.md
 

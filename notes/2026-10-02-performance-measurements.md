@@ -153,7 +153,7 @@ torch.distributed.DistNetworkError: The server socket has failed to listen to an
 
 ---
 
-## 七、2026-10-03 独立复测(简历可用性审计)
+## 七、2026-10-03 独立复测(对外数字核对)
 
 为核对对外数字,按本文档的同一口径重跑全量 bench(133,966 输出 token,`PYTHONUTF8=1`),**同会话背靠背**:
 
