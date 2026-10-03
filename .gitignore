@@ -17,9 +17,9 @@ desktop.ini
 # uv 缓存
 .uv/
 
-# 本地笔记与个人定位文档,不进公开仓库
-notes/*resume-positioning*.md
-notes/*private*.md
+# notes/ 下只有测量记录对外公开,其余均为本地个人笔记,不进公开仓库
+notes/*
+!notes/2026-10-02-performance-measurements.md
 
 # 本地工作流配置(agent skills 的 issue tracker / triage 标签 / 领域文档规则)。
 # 对仓库的对外读者没有价值,且含私人上下文;本地的 agent 会话仍可正常读取。
