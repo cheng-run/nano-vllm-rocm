@@ -12,8 +12,10 @@ AMD RX 9070 (RDNA4 / gfx1201) + Windows 11 + ROCm 10 + torch 2.13.0+rocm10.0.0�
 - 移植面:`nanovllm/layers/attention_rocm.py`(参考后端)+ `attention_triton.py`
   (kernel 后端)+ `attention.py` 的 seam 切换 + `model_runner.py` 的 nccl→gloo 回退。
   其余 1300 行未改。
-- **闸门 2 已完成(2026-10-02)**:decode 路径三步优化,同配置 A/B 对照 75.2 → 810.9 tok/s,
-  开图后 1600.2 tok/s。差距归因见 `README.md`(四个假设全部被证伪,主因仍未知)。
+- **闸门 2 已完成(2026-10-02)**:decode 路径三步优化,同配置全量 A/B 对照 75.2 → **547.0 tok/s**
+  (2026-10-03 复测修正;原记录 810.9 未能复现,见 `README.md` 的复测修正节)。
+  图在全量配置下仅 1.01×(短输出 bs=32 时 1600.2 tok/s,两组口径不可比)。
+  差距归因见 `README.md`(四个假设全部被证伪,主因仍未知)。
 
 ## 工程纪律
 
@@ -33,7 +35,13 @@ AMD RX 9070 (RDNA4 / gfx1201) + Windows 11 + ROCm 10 + torch 2.13.0+rocm10.0.0�
 ## 环境
 
 - venv:`.venv`(uv 管理,`uv sync` 可复现)
-- 权重:Qwen3-0.6B 的 safetensors + config/tokenizer,路径写在 `example.py` / `bench.py` 里
+- **跑任何脚本前先设 `PYTHONUTF8=1`**:中文 Windows 下不设则 `import nanovllm` 即崩
+  (`UnicodeDecodeError: 'gbk' codec can't decode byte 0x94`,torch inductor 读模板未指定编码)。
+  这是区域设置问题,与本 fork 无关,但踩中时现象像"代码坏了"。
+- 权重:Qwen3-0.6B 的 safetensors + config/tokenizer;路径由环境变量 `NANOVLLM_MODEL` 提供
+  (默认值是本机约定路径,换机器只需设这一个变量)
+- **参考后端不可被 CUDA Graph 捕获**(捕获期它会回退 `cache_seqlens.tolist()`,而捕获期禁止
+  CPU↔CUDA 拷贝)。测参考后端必须 `NANOVLLM_EAGER=1`;要开图只能用 kernel 后端。
 - **不要用 `torch.nn.functional.scaled_dot_product_attention`**:实测在本栈上交替抛
   `hipErrorInvalidValue` 且异步污染流,证据见 `tools/probe_sdpa_stability.py`。
   需要 attention 就用手写算子或 triton kernel。
