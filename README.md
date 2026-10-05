@@ -102,10 +102,10 @@ $env:PYTHONUTF8 = "1"      # PowerShell
 export PYTHONUTF8=1        # bash / Git Bash
 ```
 
-权重放在环境变量 `NANOVLLM_MODEL` 指向的目录(默认 `D:\llama.cpp\models\Qwen\Qwen3-0.6B`,
-本机约定:按 HF 仓库作者名建一级目录),需要 `config.json` / `tokenizer.json` /
-`tokenizer_config.json` / `vocab.json` / `merges.txt` 与 `model.safetensors` 同目录。
-换机器只需设这一个变量,不必改代码。
+权重目录由环境变量 `NANOVLLM_MODEL` 提供,**没有默认值**——不设就直接报错,
+免得换机器时静默读到别处的目录。目录内需要 `config.json` / `tokenizer.json` /
+`tokenizer_config.json` / `vocab.json` / `merges.txt` 与 `model.safetensors`
+(可直接取自 HuggingFace 的 `Qwen/Qwen3-0.6B`)。
 
 ## 如何复现这些数字
 

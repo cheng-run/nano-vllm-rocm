@@ -38,8 +38,8 @@ AMD RX 9070 (RDNA4 / gfx1201) + Windows 11 + ROCm 10 + torch 2.13.0+rocm10.0.0�
 - **跑任何脚本前先设 `PYTHONUTF8=1`**:中文 Windows 下不设则 `import nanovllm` 即崩
   (`UnicodeDecodeError: 'gbk' codec can't decode byte 0x94`,torch inductor 读模板未指定编码)。
   这是区域设置问题,与本 fork 无关,但踩中时现象像"代码坏了"。
-- 权重:Qwen3-0.6B 的 safetensors + config/tokenizer;路径由环境变量 `NANOVLLM_MODEL` 提供
-  (默认值是本机约定路径,换机器只需设这一个变量)
+- 权重:Qwen3-0.6B 的 safetensors + config/tokenizer;路径由环境变量 `NANOVLLM_MODEL` 提供,
+  **没有默认值**——不设即报错(刻意为之:防止换机器时静默读错目录)
 - **参考后端不可被 CUDA Graph 捕获**(捕获期它会回退 `cache_seqlens.tolist()`,而捕获期禁止
   CPU↔CUDA 拷贝)。测参考后端必须 `NANOVLLM_EAGER=1`;要开图只能用 kernel 后端。
 - **不要用 `torch.nn.functional.scaled_dot_product_attention`**:实测在本栈上交替抛
