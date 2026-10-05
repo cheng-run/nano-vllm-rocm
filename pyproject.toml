@@ -7,8 +7,10 @@ name = "nano-vllm-rocm"
 version = "0.2.0"
 description = "nano-vllm fork adapted for AMD ROCm on Windows (RX 9070 / gfx1201)"
 requires-python = ">=3.12,<3.13"
-# 依赖为何与上游不同(2026-09-30 调研,详见 ../nano-vllm/research/):
-# - flash-attn 删除:ROCm/PyPI/官方索引均无 Windows wheel,attention 改走 triton/SDPA(本工作区唯一代码改动)
+# 依赖为何与上游不同(2026-09-30 调研):
+# - flash-attn 删除:ROCm/PyPI/官方索引均无 Windows wheel,attention 改走本仓库自写的
+#   参考后端 + triton kernel 后端。**不要回退到 torch SDPA**——实测在本栈上交替抛
+#   hipErrorInvalidValue 且异步污染后续算子(见 AGENTS.md 与 tools/probe_sdpa_stability.py)。
 # - triton 用 triton-windows 3.7.1.post27:本机探针实测通过 store_kvcache 同款 scatter kernel 的版本
 # - 其余小包锁定教学环境验证过的版本,减少变量
 dependencies = [

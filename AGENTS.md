@@ -45,4 +45,5 @@ AMD RX 9070 (RDNA4 / gfx1201) + Windows 11 + ROCm 10 + torch 2.13.0+rocm10.0.0�
 - **不要用 `torch.nn.functional.scaled_dot_product_attention`**:实测在本栈上交替抛
   `hipErrorInvalidValue` 且异步污染流,证据见 `tools/probe_sdpa_stability.py`。
   需要 attention 就用手写算子或 triton kernel。
-- 进程组端口硬编码 2333:同机并发两个引擎实例必然失败,对照实验必须串行。
+- 进程组端口默认 2333(沿用上游值),同机并发两个引擎实例会撞端口而失败
+  (实测报 `DistNetworkError`)。需要并行对照实验时给其中一个设 `NANOVLLM_MASTER_PORT`。

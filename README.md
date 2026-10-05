@@ -137,8 +137,9 @@ python tools/probe_graph_eval.py                                # 图倍率随 b
 cuda events 夹壳这类探针会给每步加 ~18ms,足以让"attention 占 43%"这类结论完全失真
 (见 `notes/2026-10-02-performance-measurements.md`)。
 
-**已知的测量限制**:`model_runner.py` 的进程组端口硬编码 2333,同机并发两个引擎实例
-必然失败——所有对照实验必须串行。
+**并行跑对照实验**:`model_runner.py` 的进程组监听端口默认 2333(沿用上游值),同机两个引擎实例
+会用同一端口而撞车。设 `NANOVLLM_MASTER_PORT` 给其中一个换端口即可并行——本项目早期的对照
+实验全部靠串行绕开,现在不必了。
 
 ## 验证脚本(`tools/`)
 
@@ -152,6 +153,7 @@ cuda events 夹壳这类探针会给每步加 ~18ms,足以让"attention 占 43%"
 | `probe_graph_equivalence.py` | eager 与 graph 路径输出一致 |
 | `probe_graph_eval.py` | 图在哪些 batch 区间划算 |
 | `probe_phase_split.py` | 差距归因:两后端单变量对照,分离 prefill / decode 份额 |
+| `probe_preemption.py` | 差距归因:数 `Scheduler.preempt` 次数,验证 KV 池超配假说 |
 | `probe_sdpa_stability.py` | 为何禁用 SDPA(留档) |
 | `probe_decode_profile.py` · `probe_step_breakdown.py` | 早期耗时画像(**探针有污染,结论已废**,留作反面教材) |
 | `probe_gather_cost.py` · `probe_attn_breakdown.py` · `probe_op_overhead.py` · `probe_no_item.py` · `probe_profiler.py` | 定位瓶颈的中间探针 |
@@ -159,6 +161,5 @@ cuda events 夹壳这类探针会给每步加 ~18ms,足以让"attention 占 43%"
 ## 文档
 
 - `CONTEXT.md` — 本 fork 的术语表(后端 / seam / 图安全 / 无探针基线…)
-- `notes/2026-10-02-performance-measurements.md` — 测量记录与三轮自我纠错
+- `notes/2026-10-02-performance-measurements.md` — 测量记录、三轮自我纠错与 2026-10-03 独立复测
 - `AGENTS.md` — 工程纪律(测量规范、禁止项)
-- `.scratch/gate2-performance/` — 本轮 spec 与执行票

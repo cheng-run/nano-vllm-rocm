@@ -1,6 +1,6 @@
 """flash_attn 的 ROCm/Windows 替代实现(路线 B:gather + 手写分块 attention)。
 
-为什么存在(2026-09-30 调研,见 ../nano-vllm/research/2026-09-30-rocm-feasibility.md):
+为什么存在(2026-09-30 调研):
   flash-attn 在 Windows ROCm 上没有任何可安装产物——PyPI 只有 sdist、ROCm fork 的
   release wheel 全是 CUDA/linux、AMD whl-next 索引无此包。vLLM 在 RDNA4 上同样不用
   flash-attn 包而走 Triton attention。本文件等价复现两个调用点的语义:

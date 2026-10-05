@@ -4,9 +4,11 @@ from transformers import AutoTokenizer
 
 
 def main():
-    # 模型路径:优先读 NANOVLLM_MODEL 环境变量,默认值为本机约定(作者名一级目录);
-    # 换机器只需设这一个变量,不必改代码。HF 缓存的 config/tokenizer 需与本目录放在一起。
-    path = os.environ.get("NANOVLLM_MODEL", r"D:\llama.cpp\models\Qwen\Qwen3-0.6B")
+    # 模型路径必须由 NANOVLLM_MODEL 提供——刻意不设默认值:回落作者本机路径会让换机器的人静默读错目录。
+    # HF 缓存的 config/tokenizer 需与该目录放在一起。
+    path = os.environ.get("NANOVLLM_MODEL")
+    if not path:
+        raise SystemExit("未设置 NANOVLLM_MODEL:请指向 Qwen3-0.6B 权重目录(含 config.json/tokenizer.json/model.safetensors)")
     tokenizer = AutoTokenizer.from_pretrained(path)
     llm = LLM(path, enforce_eager=True, tensor_parallel_size=1)
 

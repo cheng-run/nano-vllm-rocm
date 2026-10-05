@@ -1,9 +1,8 @@
 # nano-vllm-rocm
 
 本 fork 把 nano-vllm 移植到 AMD RX 9070 (gfx1201) / Windows / ROCm。这里的词分两层:
-推理引擎的通用词汇(block、prefill、decode、`num_cached_tokens`…)沿用上游与教学区
-`D:\项目\python\nano-vllm\reference\glossary.html`,**不在此重复定义**;本文件只收录
-移植过程中新增、或在上游没有对应的概念。
+推理引擎的通用词汇(block、prefill、decode、`num_cached_tokens`…)沿用上游与 vLLM 生态的
+通行含义,**不在此重复定义**;本文件只收录移植过程中新增、或在上游没有对应的概念。
 
 ## Language
 
@@ -21,8 +20,9 @@ _Avoid_: 实现、引擎、driver
 kernel 后端的**正确性基准**,永久保留,不因性能落后而删除。
 
 **kernel 后端 (kernel backend)**:
-待写的 triton paged attention 后端。按 `block_table` 在 kernel 内就地读 KV——
-即上游 flash-attn 的做法,消掉参考后端的 gather 搬运。
+`layers/attention_triton.py` 里自写的 triton paged attention 后端,**只接管 decode**。
+按 `block_table` 在 kernel 内就地读 KV——即上游 flash-attn 的做法,消掉参考后端的 gather 搬运。
+长度与页表都在 kernel 内从设备张量读取,因此天然**图安全**,是开启 CUDA Graph 的前提。
 _Avoid_: 加速版、优化版
 
 **seam**:

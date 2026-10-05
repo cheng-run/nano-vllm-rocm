@@ -1,3 +1,4 @@
+import os
 import pickle
 import torch
 import torch.distributed as dist
@@ -28,7 +29,11 @@ class ModelRunner:
         # (get_rank/barrier/销毁,collective 全在 tp_size>1 分支里),gloo 足够;
         # 多卡 GPU 通信仍需 nccl,故只在 nccl 可用时优先它。
         backend = "nccl" if dist.is_nccl_available() else "gloo"
-        dist.init_process_group(backend, "tcp://localhost:2333", world_size=self.world_size, rank=rank)
+        # 监听端口可配(默认 2333 沿用上游值)。同机并行跑两个引擎实例做对照实验时,
+        # 固定端口必然撞车——实测报 DistNetworkError(socket bind 失败);给其中一个
+        # 设 NANOVLLM_MASTER_PORT 即可并行,不必再让所有对照实验串行。
+        master_port = os.environ.get("NANOVLLM_MASTER_PORT", "2333")
+        dist.init_process_group(backend, f"tcp://localhost:{master_port}", world_size=self.world_size, rank=rank)
         torch.cuda.set_device(rank)
         default_dtype = torch.get_default_dtype()
         torch.set_default_dtype(hf_config.dtype)

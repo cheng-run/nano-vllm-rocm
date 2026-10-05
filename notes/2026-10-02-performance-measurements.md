@@ -151,6 +151,9 @@ torch.distributed.DistNetworkError: The server socket has failed to listen to an
 单卡日常使用不受影响(一次一个引擎),但**并行跑对照实验时必须串行**,否则报错。
 这个坑在写对照探针时踩到过(见下节"探针踩坑"新增条目)。
 
+> **2026-10-03 已修**:端口改为可配(`NANOVLLM_MASTER_PORT`,默认仍是 2333),
+> 同机并行跑对照实验时给其中一个换端口即可,不必再靠串行绕开。
+
 ---
 
 ## 七、2026-10-03 独立复测(对外数字核对)
